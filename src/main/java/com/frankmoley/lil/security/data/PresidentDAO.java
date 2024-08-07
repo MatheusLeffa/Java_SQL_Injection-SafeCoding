@@ -1,30 +1,39 @@
 package com.frankmoley.lil.security.data;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.frankmoley.lil.security.util.DatabaseUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PresidentDAO {
 
-    // Implementação de PreparedStatement para evitar SQL Injection
+    private static final Logger LOGGER = LoggerFactory.getLogger(PresidentDAO.class);
+
     public List<President> getByLastName(String lastName){
+        LOGGER.debug("Starting");
         Connection connection = DatabaseUtil.getConnection();
         String sql = "select PRESIDENT_ID, FIRST_NAME, MIDDLE_INITIAL, LAST_NAME, EMAIL_ADDRESS from PRESIDENT where LAST_NAME = ?";
+        LOGGER.debug("Query string: {}", sql);
         List<President> resultList= new ArrayList<>();
         try {
-            PreparedStatement preparedStatement = connection.prepareStatement(sql);
-            preparedStatement.setString(1, lastName);
-            ResultSet resultSet = preparedStatement.executeQuery();
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, lastName);
+            ResultSet resultSet = statement.executeQuery();
             while(resultSet.next()){
                 resultList.add(processResultSet(resultSet));
             }
             resultSet.close();
-            preparedStatement.close();
-        } catch (SQLException sqlE) {
-            sqlE.printStackTrace();
+            statement.close();
+        } catch (SQLException sqle) {
+            LOGGER.error("Error executing query", sqle);
         }
+        LOGGER.debug("Ending with {} results", resultList.size());
         return resultList;
     }
 
@@ -35,7 +44,9 @@ public class PresidentDAO {
         String middleInitial = resultSet.getString("MIDDLE_INITIAL");
         String lastName = resultSet.getString("LAST_NAME");
         String emailAddress = resultSet.getString("EMAIL_ADDRESS");
-        return new President(id, firstName, middleInitial, lastName, emailAddress);
+        President president =  new President(id, firstName, middleInitial, lastName, emailAddress);
+        LOGGER.info("Resolving president: {}", president);
+        return president;
     }
 
 
